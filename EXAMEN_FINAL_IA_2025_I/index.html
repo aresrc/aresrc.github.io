@@ -568,9 +568,10 @@
             const selectedCountryKey = countrySelect.value;
             const selectedCountryName = countrySelect.options[countrySelect.selectedIndex].text;
             const selectedTravelerCountriesList = document.getElementById('selectedTravelerCountriesList');
+            const errorContainer = document.getElementById('traveler-route-error') || createErrorContainer();
 
             if (!selectedCountryKey) {
-                console.warn('Por favor, selecciona un país para agregar a la ruta.');
+                showRouteError('Por favor, selecciona un país para agregar a la ruta.');
                 return;
             }
 
@@ -583,10 +584,27 @@
             const isDuplicateIntermediate = currentNewTravelerRoute.includes(selectedCountryKey) && !isReturnTrip;
 
             if (isDuplicateIntermediate) {
-                console.warn(`El país "${selectedCountryName}" ya ha sido agregado a la ruta (no se permiten duplicados intermedios).`);
+                showRouteError(`El país "${selectedCountryName}" ya ha sido agregado a la ruta (no se permiten duplicados intermedios).`);
                 return;
             }
 
+            // Si no es el primer país, verifica que exista un vuelo desde el país anterior
+            if (!isFirstCountry) {
+                const previousCountry = currentNewTravelerRoute[currentNewTravelerRoute.length - 1];
+                const flightExists = flights.some(flight => 
+                    (flight.from === previousCountry && flight.to === selectedCountryKey) ||
+                    (flight.from === selectedCountryKey && flight.to === previousCountry)
+                );
+                
+                if (!flightExists) {
+                    showRouteError(`No existe una ruta directa entre "${previousCountry}" y "${selectedCountryKey}".`);
+                    return;
+                }
+            }
+        
+            // Limpiar mensaje de error si todo está bien
+            clearRouteError();
+            
             currentNewTravelerRoute.push(selectedCountryKey);
 
             const listItem = document.createElement('li');
@@ -656,28 +674,67 @@
             const name = travelerNameInput.value.trim();
             
             if (!name) {
-                console.error('Por favor, ingresa un nombre para el viajero.');
+                showRouteError('Por favor, ingresa un nombre para el viajero.');
                 return;
             }
             if (currentNewTravelerRoute.length < 1) {
-                console.error('Por favor, agrega al menos un país a la ruta del viajero.');
+                showRouteError('Por favor, agrega al menos un país a la ruta del viajero.');
+                return;
+            }
+
+            // Verificar que toda la ruta sea válida (aunque debería estar garantizado por la validación en addCountryToTravelerRoute)
+            let routeIsValid = true;
+            for (let i = 0; i < currentNewTravelerRoute.length - 1; i++) {
+                const fromCountry = currentNewTravelerRoute[i];
+                const toCountry = currentNewTravelerRoute[i + 1];
+                
+                const flightExists = flights.some(flight => 
+                    (flight.from === fromCountry && flight.to === toCountry) ||
+                    (flight.from === toCountry && flight.to === fromCountry)
+                );
+                
+                if (!flightExists) {
+                    showRouteError(`Ruta inválida: No existe vuelo directo entre "${fromCountry}" y "${toCountry}".`);
+                    routeIsValid = false;
+                    break;
+                }
+            }
+            
+            if (!routeIsValid) {
                 return;
             }
 
             const travelerKey = name.toLowerCase().replace(/\s/g, ''); // Simple key generation
             if (travelers[travelerKey]) {
-                console.warn(`Ya existe un viajero con el nombre "${name}".`);
+                showRouteError(`Ya existe un viajero con el nombre "${name}".`);
                 return;
             }
+
+            // Limpiar mensaje de error si todo está bien
+            clearRouteError();
 
             // Determine if the traveler has returned
             const hasReturned = currentNewTravelerRoute.length > 1 &&
                                 currentNewTravelerRoute[0] === currentNewTravelerRoute[currentNewTravelerRoute.length - 1];
 
-            // Calculate dummy stats for the new traveler
-            const numCountries = currentNewTravelerRoute.length;
-            const dummyCost = numCountries * 700 + Math.floor(Math.random() * 500);
-            const dummyHours = numCountries * 8 + Math.floor(Math.random() * 10);
+            // Calculate total cost and duration based on the actual flights
+            let totalCost = 0;
+            let totalHours = 0;
+            
+            for (let i = 0; i < currentNewTravelerRoute.length - 1; i++) {
+                const fromCountry = currentNewTravelerRoute[i];
+                const toCountry = currentNewTravelerRoute[i + 1];
+                
+                const flight = flights.find(flight => 
+                    (flight.from === fromCountry && flight.to === toCountry) ||
+                    (flight.from === toCountry && flight.to === fromCountry)
+                );
+                
+                if (flight) {
+                    totalCost += flight.cost;
+                    totalHours += flight.duration;
+                }
+            }
             
             const newTraveler = {
                 name: name,
@@ -686,9 +743,9 @@
                 returned: hasReturned, // Set returned status based on the route
                 color: `#${Math.floor(Math.random()*16777215).toString(16)}`, // Random color
                 stats: {
-                    countries: numCountries,
-                    cost: dummyCost,
-                    hours: dummyHours,
+                    countries: new Set(currentNewTravelerRoute).size, // Count unique countries
+                    cost: totalCost,
+                    hours: totalHours,
                     status: hasReturned ? "Regresó" : "En Viaje"
                 }
             };
@@ -703,9 +760,40 @@
             selectedTravelerCountriesList.innerHTML = ''; // Clear the displayed list
 
             console.log(`Viajero "${name}" agregado con éxito.`);
-            // Optionally, show the new traveler's route immediately
-            // showRoute(travelerKey);
+            // Mostrar el nuevo viajero inmediatamente
+            showRoute(travelerKey);
         }
+
+        // Función para crear el contenedor de errores
+            function createErrorContainer() {
+                const container = document.createElement('div');
+                container.id = 'traveler-route-error';
+                container.className = 'mt-4 p-3 bg-red-100 text-red-700 rounded-lg hidden';
+                
+                // Insertar después del botón Guardar Viajero
+                const addTravelerSection = document.querySelector('.add-traveler-section');
+                const buttonContainer = addTravelerSection.querySelector('div.mt-6');
+                addTravelerSection.insertBefore(container, buttonContainer.nextSibling);
+                
+                return container;
+            }
+
+            // Función para mostrar mensajes de error
+            function showRouteError(message) {
+                const errorContainer = document.getElementById('traveler-route-error') || createErrorContainer();
+                errorContainer.textContent = message;
+                errorContainer.classList.remove('hidden');
+                console.warn(message);
+            }
+
+            // Función para limpiar mensajes de error
+            function clearRouteError() {
+                const errorContainer = document.getElementById('traveler-route-error');
+                if (errorContainer) {
+                    errorContainer.textContent = '';
+                    errorContainer.classList.add('hidden');
+                }
+            }
     </script>
 </body>
 </html>
