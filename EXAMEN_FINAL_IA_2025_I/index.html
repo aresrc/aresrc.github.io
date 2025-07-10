@@ -168,6 +168,8 @@
             {from: 'eeuu', to: 'francia', cost: 1100, duration: 9},
             {from: 'francia', to: 'china', cost: 1200, duration: 11},
             {from: 'china', to: 'australia', cost: 1300, duration: 12},
+            {from: 'australia', to: 'brasil', cost: 1500, duration: 15},
+            {from: 'australia', to: 'peru', cost: 1400, duration: 15},
             {from: 'india', to: 'china', cost: 700, duration: 6},
             {from: 'brasil', to: 'eeuu', cost: 900, duration: 8}
         ];
@@ -192,7 +194,7 @@
                 route: ["peru", "brasil", "india", "francia"],
                 returned: false,
                 color: "#FF6B6B", // Red
-                stats: { countries: 4, cost: 2200, hours: 27, status: "En Viaje" }
+                stats: { countries: 3, cost: 2200, hours: 27, status: "En Viaje" }
             },
             juan: {
                 name: "Juan",
@@ -200,7 +202,7 @@
                 route: ["peru", "chile", "india", "francia", "peru"],
                 returned: true,
                 color: "#4ECDC4", // Teal
-                stats: { countries: 4, cost: 2650, hours: 36, status: "Regresó" }
+                stats: { countries: 3, cost: 2650, hours: 36, status: "Regresó" }
             },
             luis: {
                 name: "Luis",
@@ -208,7 +210,7 @@
                 route: ["brasil", "india", "francia", "china", "australia", "brasil"],
                 returned: true,
                 color: "#45B7D1", // Light Blue
-                stats: { countries: 5, cost: 4200, hours: 52, status: "Regresó" }
+                stats: { countries: 4, cost: 4200, hours: 52, status: "Regresó" }
             },
             maria: {
                 name: "María",
@@ -216,7 +218,7 @@
                 route: ["peru", "eeuu", "francia", "china", "india", "australia", "peru"],
                 returned: true,
                 color: "#96CEB4", // Mint Green
-                stats: { countries: 6, cost: 6200, hours: 69, status: "Regresó" }
+                stats: { countries: 5, cost: 6200, hours: 69, status: "Regresó" }
             },
             carla: {
                 name: "Carla",
